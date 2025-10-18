@@ -28,7 +28,11 @@ function showSuccess(text) {
 async function loadOrders() {
     try {
         const response = await apiRequest('/api/orders', { method: 'GET' }); // получение заказов
-        console.log(response.json());
+        if (!response.ok) {
+            showError('Ошибка загрузки');
+            return; //или throw new Error('Ошибка загрузки');
+        }
+        return await response.json();
     } catch (error) {
         console.error('Ошибка:', error);
         throw error;
@@ -37,17 +41,23 @@ async function loadOrders() {
 
 // 📤 Создать заказ
 async function createOrder(orderData) {
-    try {
-        const response = await apiRequest('/api/orders', {
-            method: 'POST',
-            body: JSON.stringify(orderData)
-        });
+   try {
+    const response = await apiRequest('/api/orders', {
+        method: 'POST',
+        body: JSON.stringify(orderData)
+    });
 
-        return await response.json();
-    } catch (error) {
-        throw error;
+    if (!response.ok) {
+        showError('Ошибка создания заказа');
+        throw new Error('Ошибка создания заказа');
     }
+
+    return await response.json();
+} catch (error) {
+    throw error;
 }
+}
+
 
 // 🎨 Отобразить заказы
 function renderOrders(ordersArray) {
@@ -77,6 +87,7 @@ async function refreshOrders() {
 
 // 📝 Обработчик формы
 orderForm.addEventListener('submit', async function(event) {
+    event.preventDefault(); // Добавляем предотвращение отправки формы
 
     const formData = new FormData(this);
     const orderData = {
@@ -85,7 +96,7 @@ orderForm.addEventListener('submit', async function(event) {
     };
 
     // Блокируем кнопку
-    const button = this.querySelector('button');
+     const button = this.querySelector('button');
     const originalText = button.textContent;
     button.textContent = 'Создаём...';
     button.disabled = true;
@@ -93,6 +104,10 @@ orderForm.addEventListener('submit', async function(event) {
     try {
         // Создаем заказ
         const newOrder = await createOrder(orderData);
+        
+        // Показываем успех (добавляем уведомление)
+        showSuccess(`Заказ #${newOrder.id} создан!`);
+        
         // Очищаем форму
         this.reset();
         // Обновляем список
@@ -100,6 +115,7 @@ orderForm.addEventListener('submit', async function(event) {
 
     } catch (error) {
         console.log('Не удалось создать заказ');
+        showError('Не удалось создать заказ'); // Добавляем показ ошибки пользователю
     } finally {
         // Разблокируем кнопку
         button.textContent = originalText;
